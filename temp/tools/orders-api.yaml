@@ -1,0 +1,412 @@
+openapi: 3.1.0
+info:
+  title: Order Processing API
+  version: 1.0.0
+  description: API for processing and managing customer orders.
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local Development Server
+
+tags:
+  - name: Orders
+    description: Operations related to customer orders
+
+paths:
+  /orders:
+    post:
+      summary: Place a New Order
+      operationId: placeOrder
+      tags:
+        - Orders
+      requestBody:
+        description: Details for the new order
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderRequest'
+      responses:
+        "201":
+          description: Order created successfully.
+          headers:
+            Location:
+              description: URI of the newly created order resource
+              schema:
+                type: string
+                format: uri
+                example: "/api/v1/orders/order-uuid-123"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        "400":
+          description: Bad Request - Invalid order data or missing required fields.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized - Authentication required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /orders/{orderId}:
+    get:
+      summary: Get Order Details
+      operationId: getOrderDetails
+      tags:
+        - Orders
+      parameters:
+        - name: orderId
+          in: path
+          description: Unique identifier of the order
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "order-uuid-123"
+      responses:
+        "200":
+          description: Order details retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        "403":
+          description: Forbidden - Not authorized to view this order.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Order not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /orders/{orderId}/status:
+    patch:
+      summary: Update Order Status
+      operationId: updateOrderStatus
+      tags:
+        - Orders
+      parameters:
+        - name: orderId
+          in: path
+          description: Unique identifier of the order to update
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "order-uuid-123"
+      requestBody:
+        description: New status for the order, and optional tracking number.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderStatusUpdateRequest'
+      responses:
+        "200":
+          description: Order status updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        "400":
+          description: Bad Request - Invalid status transition or data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "403":
+          description: Forbidden - Not authorized to update this order's status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Order not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /orders/{orderId}/cancel:
+    post:
+      summary: Cancel an Order
+      operationId: cancelOrder
+      tags:
+        - Orders
+      parameters:
+        - name: orderId
+          in: path
+          description: Unique identifier of the order to cancel
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "order-uuid-123"
+      requestBody:
+        description: Optional reason for cancellation.
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  description: Optional reason for cancelling the order.
+                  example: "Customer changed mind"
+      responses:
+        "200":
+          description: Order cancelled successfully. Returns the updated order.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        "400":
+          description: Bad Request - Order cannot be cancelled (e.g., already shipped).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "403":
+          description: Forbidden - Not authorized to cancel this order.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Order not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    Address:
+      type: object
+      required:
+        - street
+        - city
+        - zipCode
+        - country
+      properties:
+        street:
+          type: string
+          example: "123 Main St"
+        city:
+          type: string
+          example: "Anytown"
+        zipCode:
+          type: string
+          example: "12345"
+        country:
+          type: string
+          example: "USA"
+    OrderItem:
+      type: object
+      required:
+        - productId
+        - quantity
+        - pricePerUnit
+      properties:
+        productId:
+          type: string
+          format: uuid
+          description: Unique identifier of the product.
+          example: "prod-uuid-1"
+        quantity:
+          type: integer
+          format: int32
+          minimum: 1
+          example: 2
+        pricePerUnit:
+          type: number
+          format: float
+          minimum: 0
+          example: 19.99
+    OrderRequest:
+      type: object
+      required:
+        - userId
+        - items
+        - shippingAddress
+        - paymentMethodId
+      properties:
+        userId:
+          type: string
+          format: uuid
+          description: The ID of the customer placing the order.
+          example: "cust-uuid-abc"
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+          minItems: 1
+          description: List of items included in the order.
+        shippingAddress:
+          $ref: '#/components/schemas/Address'
+        paymentMethodId:
+          type: string
+          description: Identifier for the payment method used.
+          example: "pay-uuid-xyz"
+    Order:
+      type: object
+      required:
+        - orderId
+        - userId
+        - status
+        - totalAmount
+        - createdAt
+        - items
+      properties:
+        orderId:
+          type: string
+          format: uuid
+          description: Unique identifier for the order.
+          readOnly: true
+          example: "order-uuid-123"
+        userId:
+          type: string
+          format: uuid
+          description: The ID of the customer who placed the order.
+          readOnly: true
+          example: "cust-uuid-abc"
+        status:
+          type: string
+          enum: [PENDING, PROCESSING, SHIPPED, DELIVERED, CANCELLED]
+          description: Current status of the order.
+          example: "PENDING"
+        totalAmount:
+          type: number
+          format: float
+          description: Total amount of the order, including all items and shipping.
+          readOnly: true
+          example: 44.98
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the order was placed (ISO 8601 UTC).
+          readOnly: true
+          example: "2024-07-05T11:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last timestamp when the order was updated (ISO 8601 UTC).
+          readOnly: true
+          example: "2024-07-05T11:05:00Z"
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+          description: List of items included in the order.
+          readOnly: true
+        shippingAddress:
+          $ref: '#/components/schemas/Address'
+          readOnly: true
+        trackingNumber:
+          type: string
+          description: Tracking number for shipped orders.
+          nullable: true
+          example: "TRK123456789"
+    OrderStatusUpdateRequest:
+      type: object
+      required:
+        - newStatus
+      properties:
+        newStatus:
+          type: string
+          enum: [PENDING, PROCESSING, SHIPPED, DELIVERED, CANCELLED] # Possible status transitions
+          description: The new status for the order.
+          example: "SHIPPED"
+        trackingNumber:
+          type: string
+          description: Optional tracking number if status is 'SHIPPED'.
+          nullable: true
+          example: "TRK123456789"
+    ErrorResponse: # Re-using common error schema
+      type: object
+      required:
+        - timestamp
+        - status
+        - error
+        - message
+        - path
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of the error (ISO 8601 UTC).
+          example: "2024-07-05T11:30:00Z"
+        status:
+          type: integer
+          description: HTTP status code.
+          example: 400
+        error:
+          type: string
+          description: HTTP status phrase.
+          example: "Bad Request"
+        message:
+          type: string
+          description: A detailed error message.
+          example: "Invalid status transition from DELIVERED to PENDING"
+        path:
+          type: string
+          description: The request path that caused the error.
+          example: "/api/v1/orders/order-uuid-123/status"
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                description: The field that caused the validation error.
+                example: "newStatus"
+              code:
+                type: string
+                description: A specific error code for programmatic handling.
+                example: "INVALID_TRANSITION"
+              message:
+                type: string
+                description: A human-readable message for the specific field error.
+                example: "Cannot change status from DELIVERED to PENDING"
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - bearerAuth: []

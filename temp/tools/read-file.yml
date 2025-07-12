@@ -1,0 +1,71 @@
+openapi: 3.0.0
+info:
+  title: File System API
+  version: 1.0.0
+  description: API for reading files from the server's file system.
+servers:
+  - url: http://localhost:8080/api # Replace with your actual server URL
+    description: Local development server
+paths:
+  /files/{filename}:
+    get:
+      summary: Read a file from the file system
+      operationId: readFile
+      parameters:
+        - name: filename
+          in: path
+          description: The name of the file to read (e.g., mydocument.pdf, image.png)
+          required: true
+          schema:
+            type: string
+          example: example.txt
+      responses:
+        '200':
+          description: File content returned successfully.
+          content:
+            application/octet-stream: # Generic binary stream for any file type
+              schema:
+                type: string
+                format: binary # Indicates that the response body is raw binary data
+            text/plain: # Example for a text file
+              schema:
+                type: string
+                format: binary
+              examples:
+                textExample:
+                  summary: Example text file content
+                  value: |
+                    This is the content of the example text file.
+                    It can span multiple lines.
+            image/jpeg: # Example for a JPEG image
+              schema:
+                type: string
+                format: binary
+            image/png: # Example for a PNG image
+              schema:
+                type: string
+                format: binary
+            application/pdf: # Example for a PDF document
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: File not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: File 'example.txt' not found.
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: An unexpected error occurred while reading the file.

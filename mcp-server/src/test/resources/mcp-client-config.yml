@@ -1,0 +1,10 @@
+mcp_server:
+  name: test-server
+  url: http://localhost
+  port_number: 8080
+  tools:
+    - name: testTool
+      description: old description
+      rest_api_url: http://localhost:8081/api
+  env:
+    TEST_ENV: test_value

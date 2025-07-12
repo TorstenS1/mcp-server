@@ -1,0 +1,44 @@
+
+# Maven
+target/
+pom.xml.tag
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+release-pom.xml
+
+# Java
+*.class
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+.project
+.classpath
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Configuration
+*.yml
+*.yaml
+*.properties
+
+# Specific to Spring Boot
+/src/main/resources/application.yml
+/src/main/resources/application-*.yml
+
+# Package Files
+*.jar
+*.war
+*.ear
+
+# Others
+.mvn/wrapper/maven-wrapper.jar

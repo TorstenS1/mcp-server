@@ -1,0 +1,563 @@
+openapi: 3.1.0
+info:
+  title: Users Management API
+  version: 1.0.0
+  description: API for managing user accounts, including creation, retrieval, update, and deletion. Supports pagination, filtering, and sorting.
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local Development Server
+
+tags:
+  - name: Users
+    description: User account management operations
+
+paths:
+  /users:
+    get:
+      summary: Get All Users
+      operationId: getAllUsers
+      tags:
+        - Users
+      parameters:
+        - name: page
+          in: query
+          description: Page number (0-indexed)
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 0
+        - name: size
+          in: query
+          description: Number of items per page (max 100)
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 20
+            maximum: 100
+        - name: sort
+          in: query
+          description: Comma-separated list of fields to sort by (e.g., 'lastName,asc', 'createdAt,desc')
+          required: false
+          schema:
+            type: string
+            example: "lastName,asc"
+        - name: filter[status]
+          in: query
+          description: Filter users by status (e.g., ACTIVE, INACTIVE, PENDING_VERIFICATION)
+          required: false
+          schema:
+            type: string
+            enum: [ACTIVE, INACTIVE, PENDING_VERIFICATION]
+        - name: filter[email]
+          in: query
+          description: Filter users by email address (exact match)
+          required: false
+          schema:
+            type: string
+            format: email
+      responses:
+        "200":
+          description: A paginated list of users.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPage'
+        "400":
+          description: Bad Request - Invalid query parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      summary: Create New User
+      operationId: createUser
+      tags:
+        - Users
+      requestBody:
+        description: User object to be created
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreateRequest'
+      responses:
+        "201":
+          description: User created successfully.
+          headers:
+            Location:
+              description: URI of the newly created resource
+              schema:
+                type: string
+                format: uri
+                example: "/api/v1/users/a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        "400":
+          description: Bad Request - Validation error or missing required fields.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "409":
+          description: Conflict - User with given username or email already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/{userId}:
+    get:
+      summary: Get User by ID
+      operationId: getUserById
+      tags:
+        - Users
+      parameters:
+        - name: userId
+          in: path
+          description: Unique identifier of the user
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        "404":
+          description: User not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      summary: Update User (Full Replacement)
+      operationId: updateUser
+      tags:
+        - Users
+      parameters:
+        - name: userId
+          in: path
+          description: Unique identifier of the user to update
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: Complete User object for replacement
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest' # Re-using with minor adjustment for ID in path
+      responses:
+        "200":
+          description: User updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        "400":
+          description: Bad Request - Validation error or missing required fields.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: User not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      summary: Partially Update User
+      operationId: patchUser
+      tags:
+        - Users
+      parameters:
+        - name: userId
+          in: path
+          description: Unique identifier of the user to partially update
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+      requestBody:
+        description: Partial User object with fields to update
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserPartialUpdateRequest'
+      responses:
+        "200":
+          description: User partially updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        "400":
+          description: Bad Request - Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: User not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Delete User
+      operationId: deleteUser
+      tags:
+        - Users
+      parameters:
+        - name: userId
+          in: path
+          description: Unique identifier of the user to delete
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+      responses:
+        "204":
+          description: User deleted successfully (No Content).
+        "404":
+          description: User not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    User:
+      type: object
+      required:
+        - id
+        - firstName
+        - lastName
+        - email
+        - username
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the user.
+          readOnly: true
+          example: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+        firstName:
+          type: string
+          description: The user's first name.
+          minLength: 1
+          maxLength: 50
+          example: "John"
+        lastName:
+          type: string
+          description: The user's last name.
+          minLength: 1
+          maxLength: 50
+          example: "Doe"
+        email:
+          type: string
+          format: email
+          description: The user's unique email address.
+          example: "john.doe@example.com"
+        username:
+          type: string
+          description: The user's unique username.
+          minLength: 3
+          maxLength: 30
+          example: "johndoe"
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, PENDING_VERIFICATION]
+          description: Current status of the user account.
+          example: "ACTIVE"
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the user account was created (ISO 8601 UTC).
+          readOnly: true
+          example: "2024-07-05T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last timestamp when the user account was updated (ISO 8601 UTC).
+          readOnly: true
+          example: "2024-07-05T10:30:00Z"
+    UserCreateRequest:
+      type: object
+      required:
+        - firstName
+        - lastName
+        - email
+        - username
+        - password
+      properties:
+        firstName:
+          type: string
+          description: The user's first name.
+          minLength: 1
+          maxLength: 50
+          example: "Jane"
+        lastName:
+          type: string
+          description: The user's last name.
+          minLength: 1
+          maxLength: 50
+          example: "Smith"
+        email:
+          type: string
+          format: email
+          description: The user's unique email address.
+          example: "jane.smith@example.com"
+        username:
+          type: string
+          description: The user's unique username.
+          minLength: 3
+          maxLength: 30
+          example: "janesmith"
+        password:
+          type: string
+          format: password
+          description: The user's password (min 8 chars, strong recommended).
+          minLength: 8
+          example: "securepassword123!"
+    UserUpdateRequest:
+      type: object
+      # All fields optional for PATCH, required for PUT (except read-only)
+      properties:
+        firstName:
+          type: string
+          description: The user's first name.
+          minLength: 1
+          maxLength: 50
+          example: "Jane"
+        lastName:
+          type: string
+          description: The user's last name.
+          minLength: 1
+          maxLength: 50
+          example: "Smith"
+        email:
+          type: string
+          format: email
+          description: The user's unique email address.
+          example: "jane.updated@example.com"
+        username:
+          type: string
+          description: The user's unique username.
+          minLength: 3
+          maxLength: 30
+          example: "janesmith_new"
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, PENDING_VERIFICATION]
+          description: Current status of the user account.
+          example: "INACTIVE"
+    UserPartialUpdateRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+          description: The user's first name.
+          minLength: 1
+          maxLength: 50
+          example: "Jane"
+        lastName:
+          type: string
+          description: The user's last name.
+          minLength: 1
+          maxLength: 50
+          example: "Smith"
+        email:
+          type: string
+          format: email
+          description: The user's unique email address.
+          example: "jane.updated@example.com"
+        username:
+          type: string
+          description: The user's unique username.
+          minLength: 3
+          maxLength: 30
+          example: "janesmith_new"
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, PENDING_VERIFICATION]
+          description: Current status of the user account.
+          example: "INACTIVE"
+    Pageable:
+      type: object
+      properties:
+        pageNumber:
+          type: integer
+          example: 0
+        pageSize:
+          type: integer
+          example: 20
+        sort:
+          type: object
+          properties:
+            sorted:
+              type: boolean
+              example: true
+            unsorted:
+              type: boolean
+              example: false
+            empty:
+              type: boolean
+              example: false
+        offset:
+          type: integer
+          example: 0
+        paged:
+          type: boolean
+          example: true
+        unpaged:
+          type: boolean
+          example: false
+    UserPage:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        pageable:
+          $ref: '#/components/schemas/Pageable'
+        last:
+          type: boolean
+          example: false
+        totalPages:
+          type: integer
+          example: 5
+        totalElements:
+          type: integer
+          example: 98
+        size:
+          type: integer
+          example: 20
+        number:
+          type: integer
+          example: 0
+        sort:
+          type: object
+          properties:
+            sorted:
+              type: boolean
+            unsorted:
+              type: boolean
+            empty:
+              type: boolean
+        first:
+          type: boolean
+          example: true
+        numberOfElements:
+          type: integer
+          example: 20
+        empty:
+          type: boolean
+          example: false
+    ErrorResponse:
+      type: object
+      required:
+        - timestamp
+        - status
+        - error
+        - message
+        - path
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of the error (ISO 8601 UTC).
+          example: "2024-07-05T11:30:00Z"
+        status:
+          type: integer
+          description: HTTP status code.
+          example: 400
+        error:
+          type: string
+          description: HTTP status phrase.
+          example: "Bad Request"
+        message:
+          type: string
+          description: A detailed error message.
+          example: "Validation failed for fields: email (must be unique)"
+        path:
+          type: string
+          description: The request path that caused the error.
+          example: "/api/v1/users"
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                description: The field that caused the validation error.
+                example: "email"
+              code:
+                type: string
+                description: A specific error code for programmatic handling.
+                example: "DUPLICATE"
+              message:
+                type: string
+                description: A human-readable message for the specific field error.
+                example: "Email already exists"
+  securitySchemes:
+    bearerAuth: # Name of the security scheme
+      type: http
+      scheme: bearer
+      bearerFormat: JWT # Or other token format like "opaque"
+
+security:
+  - bearerAuth: [] # Apply bearerAuth globally to all operations

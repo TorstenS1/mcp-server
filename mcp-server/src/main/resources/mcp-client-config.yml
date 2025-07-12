@@ -1,0 +1,30 @@
+mcp:
+  client:
+    server-url: "http://localhost:8080"
+    timeout: 30000 # 30 seconds
+    retry-attempts: 3
+    retry-delay: 1000 # 1 second
+
+    # Tool filtering on client side
+    tool-filter:
+      include:
+        - calculator
+        - file_reader
+      exclude: []
+
+    # Resource access configuration
+    resource-access:
+      allowed-uris:
+        - "file:///safe/path/**"
+        - "https://api.example.com/**"
+
+    # Authentication (if needed)
+    auth:
+      type: "bearer" # or "basic", "api-key"
+      token: "${MCP_API_TOKEN:}"
+
+    # Caching configuration
+    cache:
+      enabled: true
+      tools-cache-ttl: 3600 # 1 hour
+      resources-cache-ttl: 1800 # 30 minutes

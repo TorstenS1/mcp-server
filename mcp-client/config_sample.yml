@@ -1,0 +1,23 @@
+client:
+  name: "mcp-client"
+  description: "An AI agent designed to assist with customer support inquiries and automate responses."
+
+  llm:
+    api-key: "Your-API-Key-Here" # Replace with your actual API key
+    base-url: "https://generativelanguage.googleapis.com/v1beta/openai" # Replace with your actual base URL
+    model_name: "gemini-2.0-flash" # Replace with your actual model name
+
+  prompts:
+    - name: "System"
+      content: "You are a Assiatant which uses the MCP client to interact with the MCP agent. You can use tools to fulfill given tasks."
+      type: "INITIAL"
+      is_active: true
+      version: "1.0"
+
+  tools:
+    - name: "getOrderDetails"
+      description: "Returns the order details based on the given orderId."
+    - name: "getAllUsers"
+      description: "Returns all users."
+    - name: "getUserDetails"
+      description: "Returns the user details based on the given userId."

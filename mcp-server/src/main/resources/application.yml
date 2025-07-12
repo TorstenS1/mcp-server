@@ -1,0 +1,22 @@
+server:
+  port: 8110
+spring:
+  application:
+    name: openapi-mcp-server
+
+security:
+  allowed-domains:
+    - "api.example.com"
+    - "another.api.com"
+    - "localhost"
+  api-keys:
+    example-api: "your-api-key-here"
+
+logging:
+  level:
+    com.example.mcp: DEBUG
+    org.springframework.ai: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+

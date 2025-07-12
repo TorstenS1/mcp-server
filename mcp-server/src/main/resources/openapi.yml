@@ -1,0 +1,115 @@
+openapi: 3.0.3
+info:
+  title: MCP Server API
+  description: API for managing and interacting with MCP tools.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Development server
+paths:
+  /api/tools:
+    get:
+      summary: Get all tools
+      description: Retrieve a list of all available tools.
+      responses:
+        '200':
+          description: A list of tools.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tool'
+  /api/tools/{id}:
+    get:
+      summary: Get a specific tool
+      description: Retrieve a tool by its ID.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The requested tool.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tool'
+        '404':
+          description: Tool not found.
+    delete:
+      summary: Delete a tool
+      description: Delete a tool by its ID.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tool deleted successfully.
+        '400':
+          description: Failed to delete tool.
+  /api/register-openapi:
+    post:
+      summary: Register a tool from an OpenAPI spec
+      description: Register a new tool from an OpenAPI specification.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpenApiRegistrationRequest'
+      responses:
+        '200':
+          description: Tool registered successfully.
+        '400':
+          description: Failed to register tool.
+  /api/update-tool-description:
+    post:
+      summary: Update a tool's description
+      description: Update the description of an existing tool.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateToolDescriptionRequest'
+      responses:
+        '200':
+          description: Tool description updated successfully.
+        '400':
+          description: Failed to update tool description.
+
+components:
+  schemas:
+    Tool:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        inputSchema:
+          type: object
+    OpenApiRegistrationRequest:
+      type: object
+      properties:
+        type:
+          type: string
+        source:
+          type: string
+        friendlyName:
+          type: string
+        description:
+          type: string
+    UpdateToolDescriptionRequest:
+      type: object
+      properties:
+        toolName:
+          type: string
+        newDescription:
+          type: string
