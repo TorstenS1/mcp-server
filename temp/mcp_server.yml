@@ -1,0 +1,27 @@
+# Sample data for mcp_servers table
+mcp_server:
+  # just for information currently
+  url: "http://localhost:8089/mcp"
+  port_number: 8110
+  name: "core_server1"
+
+  env:
+    mvn-path: "/opt/maven/apache-maven-3.9.10/bin/mvn"
+    test-env: "test_value"
+
+# Sample data for tools table
+  tools:
+    # This is a list of tools that the MCP server provides.
+    # Each tool has a name, description, and a REST API URL.
+    # Rest API URLs can be local files (file:/tools/mytool.yml), external services (http(s)://53.44.22.33/tools/mytool.yml) or empty for MCP server integrate tools.
+    - name: "file_reader_tool"
+      description: "Read a file from the server's file system." # (not used yet)
+      rest_api_url: "file:/tools/read-file.yml"
+    - name: "user_tools"
+      description: "Provides user information from the server's user database."
+      rest_api_url: "file:/tools/users-api.yml"
+    - name: "order_tools"
+      description: "Handles order processing and management."
+      rest_api_url: "file:/tools/orders-api.yaml"
+
+

@@ -20,7 +20,7 @@ public class McpClientApplication {
     @PostConstruct
     public void readConfigOnStartup() {
         try {
-            mcpClientProperties.readConfigFile("config.txt");
+            mcpClientProperties.readConfigFile("config.yml");
         } catch (java.io.IOException e) {
             System.err.println("Error reading config file: " + e.getMessage());
         }
