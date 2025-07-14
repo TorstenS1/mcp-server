@@ -35,6 +35,8 @@ uvicorn app.main:app --reload
 ```
 The server will typically run on `http://127.0.0.1:8000`. You can access the interactive API documentation at `http://127.0.0.1:8000/docs`.
 
+**Note:** An SSE MCP Server is mounted at `http://127.0.0.1:8000/mcp-sse` to handle MCP client connections.
+
 ## API Endpoints
 
 The following API endpoints are available:
@@ -93,11 +95,11 @@ This flow describes how the server learns about available tools and presents the
     *   It also maintains an internal list (`self.tools`) of Pydantic `Tool` models, which are simplified representations of the tools, suitable for exposure via the FastAPI endpoints.
 5.  **Client Discovery**: When an MCP client (e.g., a UI or another service) requests the list of available tools (e.g., `GET /api/tools`), FastAPI routes this request to the `McpServerService`. The service retrieves the internal `Tool` models, converts them to JSON, and sends them back to the client.
 
-### 2. Tool Execution
+### 2. Tool Execution (via FastAPI REST API)
 
-This flow describes how a client requests a tool to be executed and how that request is translated into an external REST API call.
+This flow describes how a client requests a tool to be executed via the FastAPI REST API and how that request is translated into an external REST API call.
 
-1.  **Client Execution Request**: An MCP client sends a request to execute a specific tool (e.g., `POST /api/tools/{tool_id}/execute`) along with the necessary arguments.
+1.  **Client Execution Request (FastAPI)**: An MCP client sends a request to execute a specific tool (e.g., `POST /api/tools/{tool_id}/execute`) along with the necessary arguments.
 2.  **FastAPI Endpoint**: FastAPI receives the request and routes it to `McpServerService.execute_tool()`.
 3.  **`McpServerService.execute_tool()`**:
     *   It retrieves the corresponding `McpTool` object (which contains the dynamically created function) from the `FastMCP` server.
@@ -114,6 +116,17 @@ This flow describes how a client requests a tool to be executed and how that req
     *   It handles the HTTP response, including error handling, and returns the parsed JSON response.
 6.  **Result Propagation**: The result from `RestApiExecutorService` is returned back through the dynamic function, then to `McpServerService.execute_tool()`, and finally, FastAPI sends it as a JSON response back to the MCP client.
 
+### 3. Tool Execution (via SSE MCP Client)
+
+This flow describes how an MCP client connects via Server-Sent Events (SSE) and executes a tool.
+
+1.  **MCP Client Connection**: An MCP client establishes an SSE connection to the FastAPI server at the `/mcp-sse` endpoint (e.g., `http://127.0.0.1:8000/mcp-sse`).
+2.  **`FastMCP` (SSE Transport)**: The `FastMCP` instance, mounted within the FastAPI application, handles the SSE communication. It receives MCP messages, including tool execution requests.
+3.  **`FastMCP` (Tool Invocation)**: When `FastMCP` receives a tool execution request, it identifies the requested tool and invokes its associated dynamic function.
+4.  **Dynamic Function (within `OpenApiToMcpConverter`)**: (Same as step 4 in FastAPI execution flow) This dynamically generated Python function is executed. It uses the `RestApiExecutorService` to make the actual REST API call to the external service.
+5.  **`RestApiExecutorService`**: (Same as step 5 in FastAPI execution flow) Executes the REST API call and returns the result.
+6.  **Result Propagation (back to SSE Client)**: The result flows back through the dynamic function to `FastMCP`. `FastMCP` then sends the result back to the connected MCP client via the SSE connection.
+
 ## Data Flow Diagram
 
 ```mermaid
@@ -128,7 +141,7 @@ graph TD
         G -- Serves JSON Tool Descriptions --> H[MCP Client (Discovery)];
     end
 
-    subgraph Tool Execution
+    subgraph Tool Execution (FastAPI REST API)
         I[MCP Client (Execution Request)] --> J(FastAPI /api/tools/{tool_id}/execute Endpoint);
         J -- Calls execute_tool() --> K[McpServerService.execute_tool()];
         K -- Invokes Dynamic Function<br>(from FastMCP Server) --> L{Dynamic Function<br>(within OpenApiToMcpConverter)};
@@ -139,5 +152,18 @@ graph TD
         L -- Returns Execution Result --> K;
         K -- Sends JSON Response --> J;
         J -- Sends JSON Response --> I;
+    end
+
+    subgraph Tool Execution (SSE MCP Client)
+        O[MCP Client (SSE Connection)] --> P(FastAPI /mcp-sse Endpoint);
+        P -- Handled by FastMCP SSE Transport --> F;
+        F -- Invokes Dynamic Function --> L;
+        L -- Calls execute_api_call() --> M;
+        M -- Makes HTTP Request --> N;
+        N -- HTTP Response --> M;
+        M -- Returns API Result --> L;
+        L -- Returns Execution Result --> F;
+        F -- Sends Result via SSE --> P;
+        P -- Sends Result via SSE --> O;
     end
 ```
