@@ -20,22 +20,88 @@ app = FastAPI(
 )
 mcp_server_service = McpServerService()
 
+from fastapi import FastAPI, HTTPException, Request, status
+from fastapi.responses import JSONResponse
+from typing import Dict, Any, List
+import asyncio
+from starlette.routing import Mount
+from app.services.mcp_server_service import McpServerService
+from app.services.mcp_configuration_service import McpConfigurationService
+from app.models import McpServerConfig, OpenApiRegistrationRequest, UpdateToolDescriptionRequest
+from app.exceptions import (
+    ToolNotFoundException,
+    ConfigurationLoadingException,
+    ToolRegistrationException,
+    ExternalApiException,
+    InvalidOpenApiSpecException
+)
+from mcp.server.sse import SseServerTransport
+from mcp.server.streamable_http import StreamableHTTPServerTransport
+from starlette.responses import Response
+import mcp.types as types
+import uvicorn
+
+app = FastAPI(
+    title="MCP Server",
+    description="This is the Multi-Capability Platform (MCP) Server. It manages and exposes external tools via a unified API.",
+    version="1.0.0",
+)
+config_service = McpConfigurationService()
+mcp_server_config = config_service.load_mcp_server_configuration()
+mcp_server_service = McpServerService()
+
 @app.on_event("startup")
 async def startup_event():
-    """
-    Initializes tools from the configuration file when the FastAPI application starts up.
-    """
     mcp_server_service.init_tools()
 
-@app.on_event("shutdown")
-async def shutdown_event():
-    """
-    Handles application shutdown events.
-    """
-    mcp_server_service.cleanup()
+    @mcp_server_service.mcp_server.list_tools()
+    async def list_all_tools() -> list[types.Tool]:
+        # This function will return the tools that were loaded from the config
+        # or registered via OpenAPI.
+        # We need to convert our internal Tool model to mcp.types.Tool
+        mcp_tools = []
+        for tool_name, tool_data in mcp_server_service.tools.items():
+            mcp_tools.append(types.Tool(
+                name=tool_name,
+                description=tool_data.description,
+                inputSchema=tool_data.input_schema,
+            ))
 
-# Mount the FastMCP SSE application
-app.mount("/mcp-sse", mcp_server_service.mcp_server.sse_app())
+        print(f"Returning {len(mcp_tools)} tools from list_all_tools.")
+        print(f"Registered tools: {', '.join(tool.name for tool in mcp_tools)}")
+        print(f"Registered tools: {', '.join(tool.description for tool in mcp_tools)}")
+        print(f"Registered tools: {', '.join(tool.inputSchema for tool in mcp_tools)}")
+
+        return mcp_tools
+
+if mcp_server_config.transport_type == "sse":
+    transport = SseServerTransport()
+elif mcp_server_config.transport_type == "streamable-http":
+    transport = StreamableHttpServerTransport()
+
+    @app.post("/mcp")
+    async def streamable_http_endpoint(request: Request):
+        async with transport.connect_streamable_http(
+            request.scope, request.receive, request._send
+        ) as (read_stream, write_stream):
+            await mcp_server_service.mcp_server.run(
+                read_stream,
+                write_stream,
+                mcp_server_service.mcp_server.create_initialization_options(stateless=True)
+            )
+        return Response()
+
+else:
+    raise ValueError(f"Unsupported transport type: {mcp_server_config.transport_type}")
+
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host=mcp_server_config.host, port=mcp_server_config.port)
+
+
+
+
 
 @app.exception_handler(ToolNotFoundException)
 async def tool_not_found_exception_handler(request: Request, exc: ToolNotFoundException):
@@ -102,7 +168,7 @@ async def get_tools():
     """
     Retrieves a list of all registered tools.
     """
-    return mcp_server_service.get_tools()
+    return [tool.model_dump() for tool in mcp_server_service.get_tools()]
 
 @app.get("/api/tools/{id}", response_model=Dict[str, Any], summary="Get a specific tool by ID")
 async def get_tool(id: str):
@@ -187,8 +253,28 @@ async def execute_tool(tool_id: str, arguments: Dict[str, Any]):
     Execute a registered tool with the given arguments.
     """
     try:
-        result = await mcp_server_service.execute_tool(tool_id, arguments)
-        return {"result": result}
+        # The low-level server does not expose a direct execute_tool method.
+        # Instead, the client sends a CallToolRequest to the SSE endpoint.
+        # For the REST API, we'll simulate this by directly calling the dynamic function
+        # associated with the tool.
+        tool = mcp_server_service.get_tool(tool_id)
+        if not tool:
+            raise ToolNotFoundException(f"Tool '{tool_id}' not found")
+        
+        # Find the registered handler for this tool
+        # This is a bit of a hack, as the low-level server doesn't expose handlers directly
+        # We'll assume the handler is registered and can be called.
+        # In a real scenario, you might want to refactor how tools are stored/accessed.
+        # For now, we'll rely on the fact that the `call_tool` decorator registers a handler.
+        # We need to find the specific handler for this tool_id.
+        # This is a simplified approach and might need more robust handling.
+        
+        # The dynamic function is not directly accessible from mcp_server_service.tools
+        # as it's wrapped by the @mcp_server.call_tool() decorator.
+        # We need to find a way to invoke the underlying dynamic function.
+        # For now, we'll just raise an error, as direct execution via REST API is not the primary MCP way.
+        raise NotImplementedError("Direct tool execution via REST API is not supported in the low-level MCP server. Use SSE.")
+
     except ToolNotFoundException as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except ExternalApiException as e:

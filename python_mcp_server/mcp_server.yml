@@ -1,9 +1,7 @@
 mcp_server:
-  environment_variables: {}
-  name: python-mcp-server
-  port_number: 8022
+  host: 0.0.0.0
+  port: 8022
   tools:
   - description: Updated description for user API
     name: user-api
     rest_api_url: http://localhost:8023/openapi.json
-  url: http://localhost:8022

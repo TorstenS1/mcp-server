@@ -3,8 +3,8 @@ import urllib.request
 import base64
 from typing import List, Tuple, Dict, Any, Callable, get_type_hints
 import inspect
-from mcp.server.fastmcp.tools.base import Tool as McpTool
-from app.models import Tool
+from mcp.types import Tool as McpTool
+
 from app.exceptions import InvalidOpenApiSpecException, ExternalApiException
 from app.services.rest_api_executor_service import RestApiExecutorService
 
@@ -59,15 +59,17 @@ class OpenApiToMcpConverter:
         for path, path_item in self.openapi_spec.get("paths", {}).items():
             for method, operation in path_item.items():
                 if method in ["get", "post", "put", "delete", "patch"]:
-                    tool_name, description, input_schema, dynamic_function = self._extract_tool_data_from_operation(base_url, path, method, operation)
+                    tool_name, description, inputSchema, dynamic_function = self._extract_tool_data_from_operation(base_url, path, method, operation)
                     print(f"Extracted tool data: {tool_name}") # Debug print
-                    mcp_tools_data.append((dynamic_function, tool_name, description, input_schema))
+                    mcp_tools_data.append((dynamic_function, tool_name, description, inputSchema))
+        
+        print(f"Total tools extracted: {len(mcp_tools_data)}") # Debug print
 
         return mcp_tools_data
 
     def _extract_tool_data_from_operation(self, base_url: str, path: str, method: str, operation: Dict) -> Tuple[str, str, Dict, Callable[..., Any]]:
         """
-        Extracts tool data (name, description, input_schema, dynamic_function) from a single OpenAPI operation.
+        Extracts tool data (name, description, inputSchema, dynamic_function) from a single OpenAPI operation.
 
         Args:
             base_url (str): The base URL of the API.
@@ -84,21 +86,21 @@ class OpenApiToMcpConverter:
         """
         operation_id = operation.get("operationId", f"{method}_{path.replace('/', '_').strip('_')}")
         description = operation.get("description", operation.get("summary", ""))
-        input_schema = self._create_input_schema(operation)
-        dynamic_function = self._create_dynamic_function_for_operation(base_url, operation_id, input_schema)
+        inputSchema = self._create_inputSchema(operation)
+        dynamic_function = self._create_dynamic_function_for_operation(base_url, operation_id, inputSchema)
 
-        return operation_id, description, input_schema, dynamic_function
+        return operation_id, description, inputSchema, dynamic_function
 
-    def _create_dynamic_function_for_operation(self, base_url: str, tool_name: str, input_schema: Dict) -> Callable[..., Any]:
+    def _create_dynamic_function_for_operation(self, base_url: str, tool_name: str, inputSchema: Dict) -> Callable[..., Any]:
         """
         Creates a dynamic Python function that executes the REST API call for a given OpenAPI operation
-        using the RestApiExecutorService, with a signature derived from the input_schema.
+        using the RestApiExecutorService, with a signature derived from the inputSchema.
         """
         api_executor = self.api_executor # Capture the executor instance
 
-        # Create function parameters from input_schema
+        # Create function parameters from inputSchema
         parameters = []
-        for param_name, param_props in input_schema.get("properties", {}).items():
+        for param_name, param_props in inputSchema.get("properties", {}).items():
             # Attempt to infer type from schema, default to Any
             param_type = Any
             if "type" in param_props:
@@ -117,7 +119,7 @@ class OpenApiToMcpConverter:
 
             # Determine if parameter is required
             default_value = inspect.Parameter.empty
-            if param_name not in input_schema.get("required", []):
+            if param_name not in inputSchema.get("required", []):
                 default_value = None # Or a more appropriate default
 
             parameters.append(inspect.Parameter(
@@ -140,7 +142,7 @@ class OpenApiToMcpConverter:
 
         return dynamic_api_call
 
-    def _create_input_schema(self, operation: Dict) -> Dict:
+    def _create_inputSchema(self, operation: Dict) -> Dict:
         """
         Creates the input schema for a tool based on an OpenAPI operation.
 

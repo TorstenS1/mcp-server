@@ -1,13 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 
-class Tool(BaseModel):
-    """
-    Represents a tool that can be managed and executed by the MCP Server.
-    """
-    name: str = Field(..., description="The unique name of the tool (e.g., operationId from OpenAPI).")
-    description: str = Field(..., description="A brief description of what the tool does.")
-    input_schema: Dict[str, Any] = Field(..., description="JSON schema defining the expected input for the tool.")
 
 class OpenApiRegistrationRequest(BaseModel):
     """
@@ -36,3 +29,6 @@ class McpServerConfig(BaseModel):
     Represents the overall MCP server configuration from mcp_server.yml.
     """
     tools: List[McpToolConfig] = Field(default_factory=list, description="A list of tools to be loaded by the MCP server.")
+    host: str = Field("127.0.0.1", description="The host address for the MCP server.")
+    port: int = Field(8000, description="The port for the MCP server.")
+    transport_type: str = Field("sse", description="The transport type for the MCP server (e.g., 'sse', 'streamable-http', 'stdio').")

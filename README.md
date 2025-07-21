@@ -4,6 +4,7 @@ This project contains two main components:
 
 *   **mcp-server**: A Spring Boot application that implements a Model Context Protocol (MCP) server. It exposes tools to AI models and can convert OpenAPI specifications into MCP tools.
 *   **mcp-client**: A Spring Boot application that acts as a client to the MCP server. It dynamically discovers and uses tools exposed by the server to interact with a Large Language Model (LLM).
+*   **mcp-client**: A first hot Python implementation equivalent of Spring mcp-server.
 
 ## mcp-server
 
