@@ -1,5 +1,5 @@
 server:
-  port: 8110
+  port: 18001
 spring:
   application:
     name: openapi-mcp-server
@@ -9,6 +9,7 @@ security:
     - "api.example.com"
     - "another.api.com"
     - "localhost"
+    - "sample-tools-app"
   api-keys:
     example-api: "your-api-key-here"
 

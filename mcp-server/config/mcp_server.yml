@@ -1,0 +1,8 @@
+mcp_server:
+  name: "mcp-server-java"
+  url: "http://localhost:18001"
+  port_number: 18001
+  tools:
+    - name: "sample-tools"
+      description: "API for managing users and orders"
+      rest_api_url: "http://sample-tools-app:18003/v3/api-docs"

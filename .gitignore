@@ -25,3 +25,5 @@ buildNumber.properties
 mcp-client/config.yml
 /python_mcp_server/venv/
 
+/python_mcp_server/.vscode/launch.json
+/python_mcp_server/poetry.lock

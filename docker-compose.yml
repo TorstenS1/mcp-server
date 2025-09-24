@@ -1,0 +1,31 @@
+services:
+  mcp-server-java:
+    build:
+      context: ./mcp-server
+    ports:
+      - "18001:18001"
+    environment:
+      - CONFIG_DIRECTORY=/config
+    volumes:
+      - ./mcp-server/config:/config
+
+  mcp-server-python:
+    build:
+      context: ./python_mcp_server
+    ports:
+      - "18002:18002"
+
+  sample-tools-app:
+    build:
+      context: ./sample-tools-app
+    ports:
+      - "18003:18003"
+
+  mcp-client:
+    build:
+      context: ./mcp-client
+    ports:
+      - "18004:8080"
+    depends_on:
+      - mcp-server-java
+      - sample-tools-app

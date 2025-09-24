@@ -26,19 +26,17 @@ The application is configured via a `config.yml` file located in the root of the
 ```yaml
 client:
   llm:
-    api-key: "YOUR_OPENAI_API_KEY"
-    base-url: "https://api.openai.com/v1"
     model_name: "gpt-4"
+    openai-api-url: https://api.openai.com/v1
+    openai-api-key: YOUR_OPENAI_API_KEY
   mcp_server:
-    url: "http://localhost:8089/mcp"
-  tools:
-    - name: "tool1"
-    - name: "tool2"
-  prompts:
-    - name: "system"
-      prompt: "You are a helpful assistant."
-  env:
-    some_env_var: "some_value"
+    url: "http://mcp-server-java:18001/mcp/messages"
+  enabledTools:
+    - "getAllUsers"
+    - "getUserById"
+    - "getOrderDetails"
+  prompt:
+    system: "You are a helpful assistant that can access tools to get information about users and orders. When asked a question, use the available tools to find the answer."
 ```
 
 ## API Endpoints
@@ -51,12 +49,4 @@ The following REST endpoints are available:
 
 ## How to Run
 
-1.  Create a `config.yml` file in the root of the project with your desired configuration.
-2.  Build the project using Maven:
-    ```bash
-    mvn clean install
-    ```
-3.  Run the application:
-    ```bash
-    java -jar target/mcp-client-0.0.1-SNAPSHOT.jar
-    ```
+This client is designed to be run as part of the overall project using Docker Compose. Refer to the main `README.md` in the project root for instructions on how to build and run the entire project.

@@ -51,3 +51,6 @@ To run the tests, run the following command:
 ```bash
 mvn test
 ```
+Config resource not found: /config/mcp_server.yml. Cannot load MCP server configuration.
+
+Error during MCP server initialization: Cannot load MCP server configuration: Resource not found.

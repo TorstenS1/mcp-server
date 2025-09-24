@@ -53,15 +53,21 @@ public class McpConfigurationService {
     public McpServer loadMcpServerConfiguration() {
         JsonNode mcpConfigNode = null;
 
+        log.info("Attempting to load MCP server configuration.");
+        log.info("configFilePath: '{}', configResourcePath: '{}'");
+        String fullConfigPath = configFilePath + "/" + configResourcePath;
+        log.info("Full config path being checked: '{}'");
+
         try {
-            Resource resource = resourceLoader.getResource(configFilePath + "/" + configResourcePath);
+            Resource resource = resourceLoader.getResource("file:" + fullConfigPath);
+            log.info("Resource exists: {}", resource.exists());
             if (resource.exists()) {
                 mcpConfigNode = yamlMapper.readTree(resource.getInputStream());
                 loadedConfigFile = null; // Not a file, so no file to store
                 loadedFromResource = true;
                 log.info("Loaded MCP server configuration from resource: {}", configFilePath + "/" + configResourcePath);
             } else {
-                log.error("Config resource not found: {}. Cannot load MCP server configuration.", configResourcePath);
+                log.error("Config resource not found: {}. Cannot load MCP server configuration.", configFilePath + "/" + configResourcePath);
                 throw new ConfigurationLoadingException("Cannot load MCP server configuration: Resource not found.");
             }
         } catch (IOException e) {
@@ -93,7 +99,7 @@ public class McpConfigurationService {
             }
 
             JsonNode envs=serverNode.get("env");
-            if (envs.isObject()) {
+            if (envs != null && envs.isObject()) {
                 // Iterate over all fields (key-value pairs) in the JsonNode
                 Iterator<Map.Entry<String, JsonNode>> fields = envs.fields();
                 while (fields.hasNext()) {

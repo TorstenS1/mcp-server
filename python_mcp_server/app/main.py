@@ -75,7 +75,7 @@ async def startup_event():
         return mcp_tools
 
 if mcp_server_config.transport_type == "sse":
-    transport = SseServerTransport()
+    transport = SseServerTransport(endpoint="/mcp-sse")
 elif mcp_server_config.transport_type == "streamable-http":
     transport = StreamableHttpServerTransport()
 

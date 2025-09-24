@@ -6,7 +6,9 @@ client:
     api-key: "Your-API-Key-Here" # Replace with your actual API key
     base-url: "https://generativelanguage.googleapis.com/v1beta/openai" # Replace with your actual base URL
     model_name: "gemini-2.0-flash" # Replace with your actual model name
-
+  mcp_server:
+    url: "http://mcp-server-java:18001/mcp/messages"
+    # url: "http://mcp-server-python:18002/mcp-sse"
   prompts:
     - name: "System"
       content: "You are a Assiatant which uses the MCP client to interact with the MCP agent. You can use tools to fulfill given tasks."

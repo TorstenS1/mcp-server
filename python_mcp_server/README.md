@@ -10,46 +10,26 @@ This project implements a Multi-Capability Platform (MCP) server using Python. I
 
 ### Setup and Installation
 
-1.  **Navigate to the Python directory:**
-    ```bash
-    cd python
-    ```
-
-2.  **Create and activate a virtual environment (recommended):**
-    ```bash
-    python3 -m venv venv
-    source venv/bin/activate
-    ```
-
-3.  **Install dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
+This server is designed to be run as part of the overall project using Docker Compose. Refer to the main `README.md` in the project root for instructions on how to build and run the entire project.
 
 ### Running the Server
 
-From the `python` directory, run the following command:
+This server is run via Docker Compose. Once the project is up, the server will be accessible on `http://localhost:18002`. You can access the interactive API documentation at `http://localhost:18002/docs`.
 
-```bash
-python app/main.py
-```
-The server will typically run on the host and port configured in `mcp_server.yml` (default: `http://127.0.0.1:8000`). You can access the interactive API documentation at `http://<configured_host>:<configured_port>/docs`.
-
-**Note:** An SSE MCP Server is mounted at `http://127.0.0.1:8000/mcp-sse` to handle MCP client connections.
-
-
+**Note:** An SSE MCP Server is mounted at `http://localhost:18002/mcp-sse` to handle MCP client connections.
 
 ## Configuring the Server
 
-The server can be configured by creating a `mcp_server.yml` file in the `python` directory. An example `mcp_server.yml` might look like this:
+The server can be configured by creating a `mcp_server.yml` file in the `python_mcp_server` directory. An example `mcp_server.yml` might look like this:
 
 ```yaml
 mcp_server:
   host: 0.0.0.0
-  port: 8000
+  port: 18002
   tools:
-    - name: user-api
-      rest_api_url: https://raw.githubusercontent.com/example/user-api/main/openapi.yml
+    - name: sample-tools
+      description: API for managing users and orders
+      rest_api_url: http://sample-tools-app:18003/v3/api-docs
 ```
 
 ## Adding New Tools
@@ -61,7 +41,7 @@ New tools can be added to the server in two ways:
 
 ## Running the Tests
 
-From the `python` directory, with your virtual environment activated, run the following command:
+From the `python_mcp_server` directory, with your virtual environment activated, run the following command:
 
 ```bash
 PYTHONPATH=. pytest
@@ -94,7 +74,7 @@ This flow describes how the server learns about available tools and presents the
 
 This flow describes how an MCP client connects via Server-Sent Events (SSE) and executes a tool.
 
-1.  **MCP Client Connection**: An MCP client establishes an SSE connection to the FastAPI server at the `/mcp-sse` endpoint (e.g., `http://127.0.0.1:8000/mcp-sse`).
+1.  **MCP Client Connection**: An MCP client establishes an SSE connection to the FastAPI server at the `/mcp-sse` endpoint (e.g., `http://127.0.0.1:18002/mcp-sse`).
 2.  **`FastMCP` (SSE Transport)**: The `FastMCP` instance, mounted within the FastAPI application, handles the SSE communication. It receives MCP messages, including tool execution requests.
 3.  **`FastMCP` (Tool Invocation)**: When `FastMCP` receives a tool execution request, it identifies the requested tool and invokes its associated dynamic function.
 4.  **Dynamic Function (within `OpenApiToMcpConverter`)**: (Same as step 4 in FastAPI execution flow) This dynamically generated Python function is executed. It uses the `RestApiExecutorService` to make the actual REST API call to the external service.
